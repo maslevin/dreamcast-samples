@@ -9,7 +9,7 @@ all: rm-elf vqfb.elf
 KOS_ROMDISK_DIR = romdisk
 include $(KOS_BASE)/Makefile.rules
 
-OBJS = main.o simplexnoise.o romdisk.o
+OBJS = main.o simplexnoise.o
 
 clean:
 	rm -f vqfb.elf $(OBJS)

@@ -23,8 +23,7 @@ void pvr_setup() {
 
 extern uint8 romdisk[];
 
-KOS_INIT_FLAGS(INIT_DEFAULT);	
-KOS_INIT_ROMDISK(romdisk);
+KOS_INIT_FLAGS(INIT_DEFAULT);
 
 #define FRAMEBUFFER_WIDTH 256
 #define FRAMEBUFFER_HEIGHT 256
