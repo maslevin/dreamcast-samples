@@ -8,7 +8,7 @@ Author: Matt Slevinsky
 #include <kos.h>
 #include "simplexnoise.h"
 
-pvr_init_params_t pvr_params = {
+pvr_init_params_t pvr_params =  {
     /* Enable opaque and translucent polygons with size 16 */
     { PVR_BINSIZE_16, PVR_BINSIZE_0, PVR_BINSIZE_16, PVR_BINSIZE_0, PVR_BINSIZE_0 },
 
@@ -136,7 +136,7 @@ void drawScreen() {
 	pvr_poly_compile(&hdr, &cxt);
 	pvr_prim(&hdr, sizeof(hdr));
 
-	pvr_vertex_t my_vertex;		
+	pvr_vertex_t my_vertex;
 
 	my_vertex.flags = PVR_CMD_VERTEX;
 	my_vertex.x = 0.0f;
@@ -169,6 +169,10 @@ void drawScreen() {
 }
 
 int main() {
+#ifdef DEBUG
+	gdb_init();
+#endif
+
 	maple_device_t* cont;
 	cont_state_t* state;
 	bool exitMainLoop = false;
