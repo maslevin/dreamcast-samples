@@ -48,7 +48,7 @@ prepcdidir:
 debug: $(DBGEXE)
 
 $(DBGEXE): $(DBGOBJS)
-	$(KOS_CC) $(KOS_CFLAGS) $(DBGCFLAGS) $(KOS_LDFLAGS) $(KOS_START) -o $(DBGEXE) $^ -lstdc++ $(KOS_LIBS)
+	$(KOS_CC) $(KOS_CFLAGS) $(DBGCFLAGS) $(KOS_LDFLAGS) $(KOS_START) -o $(DBGEXE) $^ -lstdc++ -lm $(KOS_LIBS)
 
 $(DBGDIR)/%.o: %.cpp | prepdbgdir
 	$(KOS_CC) -c $(KOS_CFLAGS) $(DBGCFLAGS) $(KOS_LDFLAGS) -o $@ $<
@@ -56,7 +56,7 @@ $(DBGDIR)/%.o: %.cpp | prepdbgdir
 release: $(RELEXE)
 
 $(RELEXE): $(RELOBJS)
-	$(KOS_CC) $(KOS_CFLAGS) $(KOS_LDFLAGS) $(KOS_START) -o $(RELEXE) $^ -lstdc++ $(KOS_LIBS)
+	$(KOS_CC) $(KOS_CFLAGS) $(KOS_LDFLAGS) $(KOS_START) -o $(RELEXE) $^ -lstdc++ -lm $(KOS_LIBS)
 	$(KOS_STRIP) $(RELEXE)
 	$(KOS_OBJCOPY) -R .stack -O binary $(RELEXE) $(RELBIN)
 
