@@ -1,4 +1,6 @@
 /*-----------------------------------------------------------
+VQ Framebuffer Example
+
 vqfb - main.cpp
 Sept. 25th, 2015
 
@@ -25,6 +27,9 @@ extern uint8 romdisk[];
 
 KOS_INIT_FLAGS(INIT_DEFAULT);
 
+/****************************************************************************/
+/*                           VQ Texture Variables                           */
+/****************************************************************************/
 #define FRAMEBUFFER_WIDTH 256
 #define FRAMEBUFFER_HEIGHT 256
 
@@ -42,13 +47,28 @@ typedef struct {
 VQ_Texture* framebuffer;
 pvr_ptr_t texture;
 
+// Initialize the Simplex Noise Generator with these hardcoded parameters
 SimplexNoise simplexNoise(1.0f, 0.85f, 2.0f, 0.5f);
 
-void initTexture() {
+/****************************************************************************/
+/*                           Text Overlay Variables                         */
+/****************************************************************************/
+#define TEXT_OVERLAY_WIDTH 512
+#define TEXT_OVERLAY_HEIGHT 512
+#define TEXT_OVERLAY_SIZE_IN_BYTES (TEXT_OVERLAY_WIDTH * TEXT_OVERLAY_HEIGHT * 2)
+
+#define TOP_MARGIN 32
+#define LEFT_MARGIN 32
+
+uint16* textOverlayBuffer;
+pvr_ptr_t textOverlayTexture;
+
+void initTextures() {
+	// Initialize VQ Texture First - align on a 64 byte boundary so it's storage queue movable
 	framebuffer = (VQ_Texture*)memalign(64, sizeof(VQ_Texture));
 
-	//This creates a greyscale codebook (4 pixels of the same color, for each level of grey)
-	//to use as a palette for this texture
+	// This creates a greyscale codebook (4 pixels of the same color, for each level of grey)
+	// to use as a palette for this texture
 	unsigned char* codebook = (unsigned char*)&(framebuffer -> codebook);
 	uint16* codebookEntry = (uint16*)codebook;
 	uint32 codebookIdx;
@@ -62,15 +82,32 @@ void initTexture() {
 		*codebookEntry++ = codebookValue;
 	}
 
-	//Start with color bands
+	// Start with vertical color bands as a test
 	unsigned char* textureData = (unsigned char*)&(framebuffer -> texture);
 	int textureIdx;
 	for (textureIdx = 0; textureIdx < FRAMEBUFFER_PIXELS; textureIdx++) {
 		textureData[textureIdx] = textureIdx % FRAMEBUFFER_WIDTH;
 	}
 
+	// Allocate PVR VRAM for the VQ texture
 	texture = pvr_mem_malloc(sizeof(VQ_Texture));
+
+	// Move the VQ texture to VRAM
 	pvr_txr_load(framebuffer, texture, sizeof(VQ_Texture));
+
+	// Initialize the text overlay texture
+	textOverlayBuffer = (uint16*)memalign(64, TEXT_OVERLAY_SIZE_IN_BYTES);
+	memset(textOverlayBuffer, 0, TEXT_OVERLAY_SIZE_IN_BYTES);
+
+	// Draw the overlay text into this texture using the kos bios font
+	bfont_set_encoding(BFONT_CODE_ISO8859_1);
+	bfont_draw_str_ex(textOverlayBuffer + (LEFT_MARGIN + (TOP_MARGIN * TEXT_OVERLAY_WIDTH)), TEXT_OVERLAY_WIDTH, 0x0000FFFF, 0x0000FFFF, 16, 0, "Simplex Noise - 16-bit");
+
+	// Allocate PVR VRAM for the text overlay texture
+	textOverlayTexture = pvr_mem_malloc(TEXT_OVERLAY_SIZE_IN_BYTES);
+
+	// Upload the text overlay texture to VRAM
+	pvr_txr_load(textOverlayBuffer, textOverlayTexture, TEXT_OVERLAY_SIZE_IN_BYTES);
 }
 
 float xVal = 0.0f;
@@ -122,16 +159,17 @@ void freeTexture() {
 }
 
 void drawScreen() {
-	pvr_wait_ready();
-	pvr_scene_begin();
-
-	pvr_list_begin(PVR_LIST_OP_POLY);
-
 	pvr_poly_hdr_t hdr;
 	pvr_poly_cxt_t cxt;
 
+	pvr_wait_ready();
+	pvr_scene_begin();
+
+	// Draw the VQ framebuffer into the Opaque Polygon list at z=1.0f
+	pvr_list_begin(PVR_LIST_OP_POLY);
+
 	pvr_poly_cxt_col(&cxt, PVR_LIST_OP_POLY);
-	//lxdream expects 2x width, real hardware expects 4x width
+	// multiply width by 4x, as the codebook entries are 4 pixels of the same color
 	pvr_poly_cxt_txr(&cxt, PVR_LIST_OP_POLY, PVR_TXRFMT_RGB565 | PVR_TXRFMT_VQ_ENABLE | PVR_TXRFMT_NONTWIDDLED, FRAMEBUFFER_WIDTH * 4, FRAMEBUFFER_HEIGHT, texture, PVR_FILTER_NONE);
 	pvr_poly_compile(&hdr, &cxt);
 	pvr_prim(&hdr, sizeof(hdr));
@@ -165,6 +203,42 @@ void drawScreen() {
 
 	pvr_list_finish();
 
+	pvr_list_begin(PVR_LIST_TR_POLY);
+
+	// Draw the text overlay texture into the Transparent Polygon list at z=2.0f
+	pvr_poly_cxt_col(&cxt, PVR_LIST_TR_POLY);
+	pvr_poly_cxt_txr(&cxt, PVR_LIST_TR_POLY, PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_NONTWIDDLED, TEXT_OVERLAY_WIDTH, TEXT_OVERLAY_HEIGHT, textOverlayTexture, PVR_FILTER_NONE);
+	pvr_poly_compile(&hdr, &cxt);
+	pvr_prim(&hdr, sizeof(hdr));
+
+	//pvr_vertex_t my_vertex;
+	my_vertex.flags = PVR_CMD_VERTEX;
+	my_vertex.x = 0.0f;
+	my_vertex.y = TEXT_OVERLAY_HEIGHT;
+	my_vertex.z = 2.0f;
+	my_vertex.u = 0.0f;
+	my_vertex.v = 1.0f;
+	my_vertex.argb = 0xFFFFFFFF;
+	my_vertex.oargb = 0;
+	pvr_prim(&my_vertex, sizeof(my_vertex));
+
+	my_vertex.y = 0.0f;
+	my_vertex.v = 0.0f;
+	pvr_prim(&my_vertex, sizeof(my_vertex));
+
+	my_vertex.x = TEXT_OVERLAY_WIDTH;
+	my_vertex.y = TEXT_OVERLAY_HEIGHT;
+	my_vertex.u = 1.0f;
+	my_vertex.v = 1.0f;
+	pvr_prim(&my_vertex, sizeof(my_vertex));
+
+	my_vertex.flags = PVR_CMD_VERTEX_EOL;
+	my_vertex.y = 0.0f;
+	my_vertex.v = 0.0f;
+	pvr_prim(&my_vertex, sizeof(my_vertex));
+
+	pvr_list_finish();
+
 	pvr_scene_finish();	
 }
 
@@ -180,13 +254,12 @@ int main() {
 	printf("Initializing PVR\n");
 	pvr_setup();
 
-	printf("Initializing VQ Texture\n");
-	initTexture();
+	printf("Initializing Textures\n");
+	initTextures();
 
     while(!exitMainLoop) {
     	int maxControllerIndex = maple_enum_count();
     	int controllerIndex = 0;
-    	int controllerMask = 0x1;
     	for (;controllerIndex < maxControllerIndex; controllerIndex++) {
 	        if ((cont = maple_enum_type(controllerIndex, MAPLE_FUNC_CONTROLLER)) != NULL) {
 	            state = (cont_state_t *)maple_dev_status(cont);
@@ -198,7 +271,6 @@ int main() {
 	            if (state->buttons & CONT_START)
 	                exitMainLoop = true;
 	        }
-		    controllerMask <<= 1;
     	}
 
         drawScreen();
