@@ -7,8 +7,8 @@
 KOS_ROMDISK_DIR = romdisk
 include $(KOS_BASE)/Makefile.rules
 
-SRCS = main.c simplexnoise.c
-OBJS = $(SRCS:.c=.o)
+SRCS = main.cpp simplexnoise.cpp simplex_pal.cpp simplex_vqfb.cpp
+OBJS = $(SRCS:.cpp=.o)
 PROJECTNAME = vqfb
 ELFFILE = $(PROJECTNAME).elf
 BINFILE = $(PROJECTNAME).bin
@@ -51,7 +51,7 @@ $(DBGEXE): $(DBGOBJS)
 	$(KOS_CC) $(KOS_CFLAGS) $(DBGCFLAGS) $(KOS_LDFLAGS) $(KOS_START) -o $(DBGEXE) $^ -lstdc++ $(KOS_LIBS)
 
 $(DBGDIR)/%.o: %.cpp | prepdbgdir
-	$(KOS_CC) -c $(KOS_CFLAGS) $(DBGCFLAGS) $(KOS_LDFLAGS) -o $@ $<
+	$(KOS_CC) -c $(KOS_CFLAGS) -fpermissive $(DBGCFLAGS) $(KOS_LDFLAGS) -o $@ $<
 
 release: $(RELEXE)
 
@@ -61,7 +61,7 @@ $(RELEXE): $(RELOBJS)
 	$(KOS_OBJCOPY) -R .stack -O binary $(RELEXE) $(RELBIN)
 
 $(RELDIR)/%.o: %.cpp | prepreldir
-	$(KOS_CC) -c $(KOS_CFLAGS) $(KOS_LDFLAGS) -o $@ $<
+	$(KOS_CC) -c $(KOS_CFLAGS) -fpermissive $(KOS_LDFLAGS) -o $@ $<
 
 cdi: release | prepcdidir
 	/opt/toolchains/dc/kos/utils/scramble/scramble $(RELBIN) $(ISOBIN)
