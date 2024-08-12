@@ -153,9 +153,11 @@ void updateTexture() {
 	xVal += (1.0f / (float)FRAMEBUFFER_WIDTH);
 }
 
-void freeTexture() {
+void freeTextures() {
 	free (framebuffer);
+	free (textOverlayBuffer);
 	pvr_mem_free(texture);
+	pvr_mem_free(textOverlayTexture);
 }
 
 void drawScreen() {
@@ -278,8 +280,8 @@ int main() {
         updateTexture();
     }
 
-    printf("Unloading texture\n");
-    freeTexture();
+    printf("Unloading Textures\n");
+    freeTextures();
 
 	return 0;
 }
