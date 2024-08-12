@@ -7,7 +7,7 @@
 KOS_ROMDISK_DIR = romdisk
 include $(KOS_BASE)/Makefile.rules
 
-SRCS = main.cpp simplexnoise.cpp simplex_pal.cpp simplex_vqfb.cpp
+SRCS = main.cpp simplexnoise.cpp simplex_pal.cpp simplex_vqfb.cpp fire_vqfb.cpp
 OBJS = $(SRCS:.cpp=.o)
 PROJECTNAME = vqfb
 ELFFILE = $(PROJECTNAME).elf

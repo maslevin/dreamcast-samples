@@ -12,6 +12,7 @@ Author: Matt Slevinsky
 #include "sample.h"
 #include "simplex_vqfb.h"
 #include "simplex_pal.h"
+#include "fire_vqfb.h"
 
 /****************************************************************************/
 /*                           kos Initialization                             */
@@ -39,7 +40,8 @@ KOS_INIT_FLAGS(INIT_DEFAULT);
 typedef enum {
 	MODE_NONE,
 	MODE_SIMPLEX_NOISE_16_BPP,
-	MODE_SIMPLEX_NOISE_32_BPP
+	MODE_SIMPLEX_NOISE_32_BPP,
+	MODE_FIRE_VQFB
 } SampleMode;
 
 typedef struct SampleTable {
@@ -53,6 +55,9 @@ SampleTable samples[] = {
 	},
 	{
 		MODE_SIMPLEX_NOISE_32_BPP, new SimplexPal()
+	},
+	{
+		MODE_FIRE_VQFB, new FireVqfb()
 	},
 	{
 		MODE_NONE, new Sample()
@@ -94,6 +99,10 @@ void switchNextMode() {
 		} break;
 
 		case MODE_SIMPLEX_NOISE_32_BPP: {
+			currentMode = MODE_FIRE_VQFB;
+		} break;
+
+		case MODE_FIRE_VQFB: {
 			currentMode = MODE_SIMPLEX_NOISE_16_BPP;
 		} break;
 	}
@@ -107,11 +116,15 @@ void switchPrevMode() {
 
 	switch (currentMode) {
 		case MODE_SIMPLEX_NOISE_16_BPP: {
-			currentMode = MODE_SIMPLEX_NOISE_32_BPP;
+			currentMode = MODE_FIRE_VQFB;
 		} break;
 
 		case MODE_SIMPLEX_NOISE_32_BPP: {
 			currentMode = MODE_SIMPLEX_NOISE_16_BPP;
+		} break;
+
+		case MODE_FIRE_VQFB: {
+			currentMode = MODE_SIMPLEX_NOISE_32_BPP;
 		} break;
 	}
 
@@ -157,10 +170,10 @@ int main() {
 
 				if (!lockControl) {
 					if (state -> buttons & CONT_DPAD_LEFT) {
-						switchNextMode();
+						switchPrevMode();
 						lockControl = true;
 					} else if (state -> buttons & CONT_DPAD_RIGHT) {
-						switchPrevMode();
+						switchNextMode();
 						lockControl = true;
 					}
 				} else if (!(state -> buttons & (CONT_DPAD_RIGHT | CONT_DPAD_LEFT))) {
