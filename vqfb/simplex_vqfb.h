@@ -16,6 +16,7 @@ class SimplexVqfb : public Sample {
         void update();
         void cleanup();
         void render();
+        void handleInput(cont_state_t* state);
 
     private:
         VQ_Texture* framebuffer;
@@ -23,7 +24,10 @@ class SimplexVqfb : public Sample {
         SimplexNoise simplexNoise;
         uint16* textOverlayBuffer;
         pvr_ptr_t textOverlayTexture;
-        float xVal = 0.0f;        
+        float xVal = 0.0f;
+        float yVal = 0.0f;
+        uint16 xSplit = 0;
+        uint16 xIncr = 1;
 };
 
 #endif

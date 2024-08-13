@@ -175,6 +175,8 @@ int main() {
 				} else if (!(state -> buttons & (CONT_DPAD_RIGHT | CONT_DPAD_LEFT))) {
 					lockControl = false;
 				}
+
+				currentSample -> handleInput(state);
 	        }
     	}
 

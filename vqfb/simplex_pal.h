@@ -5,6 +5,8 @@
 
 #include "simplexnoise.h"
 
+#include "vqfb.h"
+
 class SimplexPal : public Sample {
     public:
         SimplexPal() {

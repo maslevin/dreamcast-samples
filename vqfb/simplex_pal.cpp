@@ -3,13 +3,6 @@
 #include "simplexnoise.h"
 
 /****************************************************************************/
-/*                       Paletted Texture Variables                         */
-/****************************************************************************/
-#define FRAMEBUFFER_WIDTH 256
-#define FRAMEBUFFER_HEIGHT 256
-#define FRAMEBUFFER_PIXELS (FRAMEBUFFER_WIDTH * FRAMEBUFFER_HEIGHT)
-
-/****************************************************************************/
 /*                           Text Overlay Variables                         */
 /****************************************************************************/
 #define TEXT_OVERLAY_WIDTH 512

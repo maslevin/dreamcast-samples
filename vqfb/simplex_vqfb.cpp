@@ -1,5 +1,7 @@
 #include "simplex_vqfb.h"
 
+#include <math.h>
+
 /****************************************************************************/
 /*                           Text Overlay Variables                         */
 /****************************************************************************/
@@ -58,6 +60,9 @@ void SimplexVqfb::init() {
 	pvr_txr_load(textOverlayBuffer, textOverlayTexture, TEXT_OVERLAY_SIZE_IN_BYTES);
 
 	xVal = 0.0f;
+	yVal = 0.0f;
+	xSplit = 0;
+	xIncr = 1;
 }
 
 void SimplexVqfb::update() {
@@ -76,14 +81,10 @@ void SimplexVqfb::update() {
 				}
 				pTexture++;
 			}
-		}		
+		}
 	} else {
+		pTexture += xSplit;
 		for (int y = 0; y < FRAMEBUFFER_HEIGHT; y++) {
-			for (int x = 0; x < (FRAMEBUFFER_WIDTH - 1); x++) {
-				*pTexture = pTexture[1];
-				pTexture++;
-			}
-
 			float pVal = simplexNoise.fractal(5, xVal + ((float)(FRAMEBUFFER_WIDTH - 1) / (float)FRAMEBUFFER_WIDTH) + 0.5f, ((float)y / (float)FRAMEBUFFER_WIDTH) + 0.5f);
 			if ((pVal > 0.0f) && (pVal < 1.0f)) {
 				*pTexture = (unsigned char)(pVal * 255.0f);
@@ -92,8 +93,11 @@ void SimplexVqfb::update() {
 			} else {
 				*pTexture = 0;
 			}
-			pTexture++;
-		}				
+
+			pTexture+=FRAMEBUFFER_WIDTH;
+		}
+		xSplit++;
+		xSplit%=FRAMEBUFFER_WIDTH;			
 	}
 
 	pvr_txr_load(framebuffer, texture, sizeof(VQ_Texture));
@@ -126,30 +130,86 @@ void SimplexVqfb::render() {
 
 	pvr_vertex_t my_vertex;
 
-	my_vertex.flags = PVR_CMD_VERTEX;
-	my_vertex.x = 0.0f;
-	my_vertex.y = 480.0f;
-	my_vertex.z = 1.0f;
-	my_vertex.u = 0.0f;
-	my_vertex.v = 1.0f;
-	my_vertex.argb = 0xFFFFFFFF;
-	my_vertex.oargb = 0;
-	pvr_prim(&my_vertex, sizeof(my_vertex));
+	if (xSplit == 0) {
+		my_vertex.flags = PVR_CMD_VERTEX;
+		my_vertex.x = 0.0f;
+		my_vertex.y = 480.0f;
+		my_vertex.z = 1.0f;
+		my_vertex.u = 0.0f;
+		my_vertex.v = 1.0f;
+		my_vertex.argb = 0xFFFFFFFF;
+		my_vertex.oargb = 0;
+		pvr_prim(&my_vertex, sizeof(my_vertex));
 
-	my_vertex.y = 0.0f;
-	my_vertex.v = 0.0f;
-	pvr_prim(&my_vertex, sizeof(my_vertex));
+		my_vertex.y = 0.0f;
+		my_vertex.v = 0.0f;
+		pvr_prim(&my_vertex, sizeof(my_vertex));
 
-	my_vertex.x = 640.0f;
-	my_vertex.y = 480.0f;
-	my_vertex.u = 1.0f;
-	my_vertex.v = 1.0f;
-	pvr_prim(&my_vertex, sizeof(my_vertex));
+		my_vertex.x = 640.0f;
+		my_vertex.y = 480.0f;
+		my_vertex.u = 1.0f;
+		my_vertex.v = 1.0f;
+		pvr_prim(&my_vertex, sizeof(my_vertex));
 
-	my_vertex.flags = PVR_CMD_VERTEX_EOL;
-	my_vertex.y = 0.0f;
-	my_vertex.v = 0.0f;
-	pvr_prim(&my_vertex, sizeof(my_vertex));
+		my_vertex.flags = PVR_CMD_VERTEX_EOL;
+		my_vertex.y = 0.0f;
+		my_vertex.v = 0.0f;
+		pvr_prim(&my_vertex, sizeof(my_vertex));
+	} else {
+		float uLeft = (float)xSplit / (float)FRAMEBUFFER_WIDTH;
+		float uRight = ((float)xSplit + 1) / (float)FRAMEBUFFER_WIDTH;
+		float xRight = floor(640.0f - (640.0f * (float)xSplit / (float)FRAMEBUFFER_WIDTH));
+
+		my_vertex.flags = PVR_CMD_VERTEX;
+		my_vertex.x = 0.0f;
+		my_vertex.y = 480.0f;
+		my_vertex.z = 1.0f;
+		my_vertex.u = uRight;
+		my_vertex.v = 1.0f;
+		my_vertex.argb = 0xFFFFFFFF;
+		my_vertex.oargb = 0;
+		pvr_prim(&my_vertex, sizeof(my_vertex));
+
+		my_vertex.y = 0.0f;
+		my_vertex.v = 0.0f;
+		pvr_prim(&my_vertex, sizeof(my_vertex));
+
+		my_vertex.x = xRight;
+		my_vertex.y = 480.0f;
+		my_vertex.u = 1.0f;
+		my_vertex.v = 1.0f;
+		pvr_prim(&my_vertex, sizeof(my_vertex));
+
+		my_vertex.flags = PVR_CMD_VERTEX_EOL;
+		my_vertex.y = 0.0f;
+		my_vertex.v = 0.0f;
+		pvr_prim(&my_vertex, sizeof(my_vertex));
+
+		my_vertex.flags = PVR_CMD_VERTEX;
+		my_vertex.x = xRight;
+		my_vertex.y = 480.0f;
+		my_vertex.z = 1.0f;
+		my_vertex.u = 0.0f;
+		my_vertex.v = 1.0f;
+		my_vertex.argb = 0xFFFFFFFF;
+		my_vertex.oargb = 0;
+		pvr_prim(&my_vertex, sizeof(my_vertex));
+
+		my_vertex.y = 0.0f;
+		my_vertex.v = 0.0f;
+		pvr_prim(&my_vertex, sizeof(my_vertex));
+
+		my_vertex.x = 640.0f;
+		my_vertex.y = 480.0f;
+		my_vertex.u = uLeft;
+		my_vertex.v = 1.0f;
+		pvr_prim(&my_vertex, sizeof(my_vertex));
+
+		my_vertex.flags = PVR_CMD_VERTEX_EOL;
+		my_vertex.y = 0.0f;
+		my_vertex.v = 0.0f;
+		pvr_prim(&my_vertex, sizeof(my_vertex));	
+	}
 
 	pvr_list_finish();
 
@@ -191,3 +251,14 @@ void SimplexVqfb::render() {
 
 	pvr_scene_finish();	    
 }
+
+void SimplexVqfb::handleInput(cont_state_t* state) {
+	if (state -> buttons & CONT_DPAD_UP) {
+		xIncr++;
+	}
+	if (state -> buttons & CONT_DPAD_DOWN) {
+		if (xIncr > 0) {
+			xIncr--;
+		}
+	}
+};
