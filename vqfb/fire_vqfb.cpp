@@ -15,8 +15,6 @@
 void FireVqfb::init() {
 	framebuffer = (VQ_Texture*)memalign(64, sizeof(VQ_Texture));
 
-	//This creates a greyscale codebook (4 pixels of the same color, for each level of red)
-	//to use as a palette for this texture
 	unsigned char* codebook = (unsigned char*)&(framebuffer -> codebook);
 	uint16* codebookEntry = (uint16*)codebook;
 	uint32 codebookIdx;

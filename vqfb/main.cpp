@@ -49,6 +49,8 @@ typedef struct SampleTable {
 	Sample* sample;
 } SampleTable;
 
+#define NUM_SAMPLES 4
+
 SampleTable samples[] = {
 	{
 		MODE_SIMPLEX_NOISE_16_BPP, new SimplexVqfb()
@@ -88,6 +90,10 @@ void update() {
 
 void cleanup() {
 	currentSample -> cleanup();
+	for (int i = 0; i < NUM_SAMPLES; i++) {
+		delete samples[i].sample;
+	}
+	currentSample = NULL;
 }
 
 void switchNextMode() {

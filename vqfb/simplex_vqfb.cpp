@@ -11,8 +11,6 @@
 #define LEFT_MARGIN 32
 
 void SimplexVqfb::init() {
-	printf("Initializing VQFB Sample\n");
-
 	// Initialize VQ Texture First - align on a 64 byte boundary so it's storage queue movable
 	framebuffer = (VQ_Texture*)memalign(64, sizeof(VQ_Texture));
 
