@@ -38,10 +38,10 @@ KOS_INIT_FLAGS(INIT_DEFAULT);
 /*                               Demo States                                */
 /****************************************************************************/
 typedef enum {
-	MODE_NONE,
-	MODE_SIMPLEX_NOISE_16_BPP,
-	MODE_SIMPLEX_NOISE_32_BPP,
-	MODE_FIRE_VQFB
+	MODE_SIMPLEX_NOISE_16_BPP = 0,
+	MODE_SIMPLEX_NOISE_32_BPP = 1,
+	MODE_FIRE_VQFB = 2,
+	MODE_NONE = 3,
 } SampleMode;
 
 typedef struct SampleTable {
@@ -98,42 +98,32 @@ void cleanup() {
 
 void switchNextMode() {
 	currentSample -> cleanup();
-
-	switch (currentMode) {
-		case MODE_SIMPLEX_NOISE_16_BPP: {
-			currentMode = MODE_SIMPLEX_NOISE_32_BPP;
-		} break;
-
-		case MODE_SIMPLEX_NOISE_32_BPP: {
-			currentMode = MODE_FIRE_VQFB;
-		} break;
-
-		case MODE_FIRE_VQFB: {
-			currentMode = MODE_SIMPLEX_NOISE_16_BPP;
-		} break;
+	for (int i = 0; i <= NUM_SAMPLES - 1; i++) {
+		if (samples[i].mode == currentMode) {
+			if (i != NUM_SAMPLES - 2) {
+				currentMode = samples[i + 1].mode;
+			} else {
+				currentMode = samples[0].mode;
+			}
+			break;
+		}
 	}
-
 	currentSample = getSample(currentMode);
 	currentSample -> init();
 }
 
 void switchPrevMode() {
 	currentSample -> cleanup();
-
-	switch (currentMode) {
-		case MODE_SIMPLEX_NOISE_16_BPP: {
-			currentMode = MODE_FIRE_VQFB;
-		} break;
-
-		case MODE_SIMPLEX_NOISE_32_BPP: {
-			currentMode = MODE_SIMPLEX_NOISE_16_BPP;
-		} break;
-
-		case MODE_FIRE_VQFB: {
-			currentMode = MODE_SIMPLEX_NOISE_32_BPP;
-		} break;
+	for (int i = 0; i <= NUM_SAMPLES - 1; i++) {
+		if (samples[i].mode == currentMode) {
+			if (i != 0) {
+				currentMode = samples[i - 1].mode;
+			} else {
+				currentMode = samples[NUM_SAMPLES - 2].mode;
+			}
+			break;
+		}
 	}
-
 	currentSample = getSample(currentMode);
 	currentSample -> init();
 }
