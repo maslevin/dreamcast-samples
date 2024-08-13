@@ -5,8 +5,6 @@
 
 #include "simplexnoise.h"
 
-#include "vqfb.h"
-
 class SimplexPal : public Sample {
     public:
         SimplexPal() {
@@ -18,13 +16,7 @@ class SimplexPal : public Sample {
         void render();
 
     private:
-        uint8* palettedTextureBuffer;
-        pvr_ptr_t texture;
-
         SimplexNoise simplexNoise;
-
-        uint16* textOverlayBuffer;
-        pvr_ptr_t textOverlayTexture;
         float xVal;        
 };
 

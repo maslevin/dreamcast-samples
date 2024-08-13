@@ -5,8 +5,6 @@
 
 #include "simplexnoise.h"
 
-#include "vqfb.h"
-
 class SimplexVqfb : public Sample {
     public:
         SimplexVqfb() {
@@ -19,11 +17,7 @@ class SimplexVqfb : public Sample {
         void handleInput(cont_state_t* state);
 
     private:
-        VQ_Texture* framebuffer;
-        pvr_ptr_t texture;
         SimplexNoise simplexNoise;
-        uint16* textOverlayBuffer;
-        pvr_ptr_t textOverlayTexture;
         float xVal = 0.0f;
         float yVal = 0.0f;
         uint16 xSplit = 0;

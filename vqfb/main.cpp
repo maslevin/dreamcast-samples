@@ -66,7 +66,7 @@ SampleTable samples[] = {
 	}
 };
 
-SampleMode currentMode = MODE_SIMPLEX_NOISE_16_BPP;
+SampleMode currentMode = MODE_FIRE_VQFB;
 Sample* currentSample;
 
 Sample* getSample(SampleMode mode) {

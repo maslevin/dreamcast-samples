@@ -2,19 +2,12 @@
 
 #include <math.h>
 
-/****************************************************************************/
-/*                           Text Overlay Variables                         */
-/****************************************************************************/
-#define TEXT_OVERLAY_WIDTH 512
-#define TEXT_OVERLAY_HEIGHT 512
-#define TEXT_OVERLAY_SIZE_IN_BYTES (TEXT_OVERLAY_WIDTH * TEXT_OVERLAY_HEIGHT * 2)
-
-#define TOP_MARGIN 32
-#define LEFT_MARGIN 32
-
 void FireVqfb::init() {
-	framebuffer = (VQ_Texture*)memalign(64, sizeof(VQ_Texture));
+    printf("1\n");
+	setupTexture(TEXTURE_MODE_VQ, DEFAULT_FRAMEBUFFER_WIDTH, DEFAULT_FRAMEBUFFER_HEIGHT, 8);
 
+    printf("2\n");
+    VQ_Texture* framebuffer = (VQ_Texture*)textureBuffer;
 	unsigned char* codebook = (unsigned char*)&(framebuffer -> codebook);
 	uint16* codebookEntry = (uint16*)codebook;
 	uint32 codebookIdx;
@@ -29,149 +22,85 @@ void FireVqfb::init() {
 		*codebookEntry++ = codebookValue;
 	}
 
+    printf("3\n");
 	// Initialize texture to 0's
-	unsigned char* textureData = (unsigned char*)&(framebuffer -> texture);
-	memset(textureData, 0, FRAMEBUFFER_PIXELS);
+	uint8* textureData = framebuffer -> texture;
+	memset(textureData, 0, framebufferWidth * framebufferHeight);
 	int xIndex;
-	int yIndex = FRAMEBUFFER_WIDTH;
+	int yIndex = framebufferWidth;
 	// Randomize the 2nd row from the bottom
-	for (xIndex = 0; xIndex < FRAMEBUFFER_WIDTH; xIndex++) {
+	for (xIndex = 0; xIndex < framebufferWidth; xIndex++) {
 		textureData[xIndex] = rand() % 255;		
 		textureData[yIndex + xIndex] = rand() % 255;
 	}
 
-	texture = pvr_mem_malloc(sizeof(VQ_Texture));
-
+    printf("4\n");
 	update();
 
-	// Initialize the text overlay texture
-	textOverlayBuffer = (uint16*)memalign(64, TEXT_OVERLAY_SIZE_IN_BYTES);
-	memset(textOverlayBuffer, 0, TEXT_OVERLAY_SIZE_IN_BYTES);
-
-	// Draw the overlay text into this texture using the kos bios font
-	bfont_set_encoding(BFONT_CODE_ISO8859_1);
-	bfont_draw_str_ex(textOverlayBuffer + (LEFT_MARGIN + (TOP_MARGIN * TEXT_OVERLAY_WIDTH)), TEXT_OVERLAY_WIDTH, 0x0000FFFF, 0x0000FFFF, 16, 0, "Fire - 16 bit");
-	bfont_draw_str_ex(textOverlayBuffer + (LEFT_MARGIN + ((TOP_MARGIN + 24) * TEXT_OVERLAY_WIDTH)), TEXT_OVERLAY_WIDTH, 0x0000FFFF, 0x0000FFFF, 16, 0, "L / R - toggle modes");
-
-	// Allocate PVR VRAM for the text overlay texture
-	textOverlayTexture = pvr_mem_malloc(TEXT_OVERLAY_SIZE_IN_BYTES);
-
-	// Upload the text overlay texture to VRAM
-	pvr_txr_load(textOverlayBuffer, textOverlayTexture, TEXT_OVERLAY_SIZE_IN_BYTES);
+    printf("5\n");
+    allocateTextOverlayTexture();
+	const char* overlayStrings[] = {
+		"Fire - 16 bit",
+		"L / R - toggle modes"
+	};
+    printf("6\n");    
+    updateTextOverlayStrings(overlayStrings, 2);
 }
 
 void FireVqfb::update() {
-	unsigned char* pTexture = (unsigned char*)&(framebuffer -> texture);
+    VQ_Texture* framebuffer = (VQ_Texture*)textureBuffer;
+	unsigned char* pTexture = framebuffer -> texture;
 
 	int yIndex;
 	int xIndex;
-	
-	for (yIndex = FRAMEBUFFER_HEIGHT; yIndex > 1; yIndex--) {
-		for (xIndex = 0; xIndex < FRAMEBUFFER_WIDTH; xIndex++) {
-			int framebufferIndex = yIndex * FRAMEBUFFER_WIDTH + xIndex;
-			float accumulator = pTexture[(yIndex - 1) * FRAMEBUFFER_WIDTH + (xIndex - 1 + FRAMEBUFFER_WIDTH) % FRAMEBUFFER_WIDTH] +
-				pTexture[(yIndex - 1) * FRAMEBUFFER_WIDTH + (xIndex + FRAMEBUFFER_WIDTH) % FRAMEBUFFER_WIDTH] +
-				pTexture[(yIndex - 1) * FRAMEBUFFER_WIDTH + (xIndex + 1 + FRAMEBUFFER_WIDTH) % FRAMEBUFFER_WIDTH] +
-				pTexture[(yIndex - 2) * FRAMEBUFFER_WIDTH + (xIndex + FRAMEBUFFER_WIDTH) % FRAMEBUFFER_WIDTH];
+	uint32 framebufferSize = (framebufferWidth * framebufferHeight) + CODEBOOK_SIZE;
+	for (yIndex = framebufferHeight; yIndex > 1; yIndex--) {
+		for (xIndex = 0; xIndex < framebufferWidth; xIndex++) {
+			int framebufferIndex = yIndex * framebufferWidth + xIndex;
+			float accumulator = pTexture[(yIndex - 1) * framebufferWidth + (xIndex - 1 + framebufferWidth) % framebufferWidth] +
+				pTexture[(yIndex - 1) * framebufferWidth + (xIndex + framebufferWidth) % framebufferWidth] +
+				pTexture[(yIndex - 1) * framebufferWidth + (xIndex + 1 + framebufferWidth) % framebufferWidth] +
+				pTexture[(yIndex - 2) * framebufferWidth + (xIndex + framebufferWidth) % framebufferWidth];
 			pTexture[framebufferIndex] = (unsigned char)floor(accumulator / 4.0125f);
 		}
 	}
 
-	pvr_txr_load(framebuffer, texture, sizeof(VQ_Texture));
+	pvr_txr_load(framebuffer, texture, framebufferSize);
 
-	yIndex = FRAMEBUFFER_WIDTH;
-	for (xIndex = 0; xIndex < FRAMEBUFFER_WIDTH; xIndex++) {
+	yIndex = framebufferWidth;
+	for (xIndex = 0; xIndex < framebufferWidth; xIndex++) {
 		pTexture[yIndex + xIndex] = rand() % 255;
 	}
 }
 
 void FireVqfb::cleanup() {
-    free (framebuffer);
+    free (textureBuffer);
     free (textOverlayBuffer);
     pvr_mem_free(texture);
     pvr_mem_free(textOverlayTexture); 
 }
 
 void FireVqfb::render() {
-	pvr_poly_hdr_t hdr;
-	pvr_poly_cxt_t cxt;
-
 	pvr_wait_ready();
 	pvr_scene_begin();
 
 	// Draw the VQ framebuffer into the Opaque Polygon list at z=1.0f
 	pvr_list_begin(PVR_LIST_OP_POLY);
 
-	pvr_poly_cxt_col(&cxt, PVR_LIST_OP_POLY);
-	// multiply width by 4x, as the codebook entries are 4 pixels of the same color
-	pvr_poly_cxt_txr(&cxt, PVR_LIST_OP_POLY, PVR_TXRFMT_RGB565 | PVR_TXRFMT_VQ_ENABLE | PVR_TXRFMT_NONTWIDDLED, FRAMEBUFFER_WIDTH * 4, FRAMEBUFFER_HEIGHT, texture, PVR_FILTER_BILINEAR);
-	pvr_poly_compile(&hdr, &cxt);
-	pvr_prim(&hdr, sizeof(hdr));
-
-	pvr_vertex_t my_vertex;
-
-	my_vertex.flags = PVR_CMD_VERTEX;
-	my_vertex.x = 0.0f;
-	my_vertex.y = 480.0f;
-	my_vertex.z = 1.0f;
-	my_vertex.u = 0.0f;
-	my_vertex.v = 0.02f;
-	my_vertex.argb = 0xFFFFFFFF;
-	my_vertex.oargb = 0;
-	pvr_prim(&my_vertex, sizeof(my_vertex));
-
-	my_vertex.y = 0.0f;
-	my_vertex.v = 1.0f;
-	pvr_prim(&my_vertex, sizeof(my_vertex));
-
-	my_vertex.x = 640.0f;
-	my_vertex.y = 480.0f;
-	my_vertex.u = 1.0f;
-	my_vertex.v = 0.02f;
-	pvr_prim(&my_vertex, sizeof(my_vertex));
-
-	my_vertex.flags = PVR_CMD_VERTEX_EOL;
-	my_vertex.y = 0.0f;
-	my_vertex.v = 1.0f;
-	pvr_prim(&my_vertex, sizeof(my_vertex));
+	// Draw the paletted framebuffer into the Opaque Polygon list at z=1.0f
+	submitTexturedRectangle(PVR_LIST_OP_POLY, PVR_TXRFMT_RGB565 | PVR_TXRFMT_VQ_ENABLE | PVR_TXRFMT_NONTWIDDLED, framebufferWidth * 4, framebufferHeight, texture, PVR_FILTER_BILINEAR, 
+                            0.0f, 0.0f, 1.0f, 640.0f, 480.0f, 0.0f, 1.0f, 1.0f, 0.02f);
 
 	pvr_list_finish();
-
+/*
 	pvr_list_begin(PVR_LIST_TR_POLY);
 
 	// Draw the text overlay texture into the Transparent Polygon list at z=2.0f
-	pvr_poly_cxt_col(&cxt, PVR_LIST_TR_POLY);
-	pvr_poly_cxt_txr(&cxt, PVR_LIST_TR_POLY, PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_NONTWIDDLED, TEXT_OVERLAY_WIDTH, TEXT_OVERLAY_HEIGHT, textOverlayTexture, PVR_FILTER_NONE);
-	pvr_poly_compile(&hdr, &cxt);
-	pvr_prim(&hdr, sizeof(hdr));
-
-	//pvr_vertex_t my_vertex;
-	my_vertex.flags = PVR_CMD_VERTEX;
-	my_vertex.x = 0.0f;
-	my_vertex.y = TEXT_OVERLAY_HEIGHT;
-	my_vertex.z = 2.0f;
-	my_vertex.u = 0.0f;
-	my_vertex.v = 1.0f;
-	my_vertex.argb = 0xFFFFFFFF;
-	my_vertex.oargb = 0;
-	pvr_prim(&my_vertex, sizeof(my_vertex));
-
-	my_vertex.y = 0.0f;
-	my_vertex.v = 0.0f;
-	pvr_prim(&my_vertex, sizeof(my_vertex));
-
-	my_vertex.x = TEXT_OVERLAY_WIDTH;
-	my_vertex.y = TEXT_OVERLAY_HEIGHT;
-	my_vertex.u = 1.0f;
-	my_vertex.v = 1.0f;
-	pvr_prim(&my_vertex, sizeof(my_vertex));
-
-	my_vertex.flags = PVR_CMD_VERTEX_EOL;
-	my_vertex.y = 0.0f;
-	my_vertex.v = 0.0f;
-	pvr_prim(&my_vertex, sizeof(my_vertex));
+	submitTexturedRectangle(PVR_LIST_TR_POLY, PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_NONTWIDDLED, TEXT_OVERLAY_WIDTH, TEXT_OVERLAY_HEIGHT, textOverlayTexture, PVR_FILTER_NONE, 
+                            0.0f, 0.0f, 2.0f, 512.0f, 512.0f, 0.0f, 1.0f, 0.0f, 1.0f);
 
 	pvr_list_finish();
+*/
 
 	pvr_scene_finish();	    
 }
