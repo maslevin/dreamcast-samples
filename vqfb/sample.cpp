@@ -9,24 +9,30 @@ uint32 Sample::getFramebufferSize() {
 }
 
 void Sample::setupTexture(TextureMode mode, uint16 width, uint16 height, uint8 bpp) {
+    printf("SetupTexture 1\n");
     textureMode = mode;
     framebufferWidth = width;
     framebufferHeight = height;
     framebufferBitsPerPixel = bpp;
     uint32 framebufferSize = getFramebufferSize();
+    printf("SetupTexture 2\n");    
 //    textureBuffer = (uint8*)malloc(framebufferSize);
     textureBuffer = (uint8*)memalign(64, framebufferSize);
+    printf("SetupTexture 3\n");    
     memset(textureBuffer, 0, framebufferSize);
+    printf("SetupTexture 4\n");    
     texture = pvr_mem_malloc(framebufferSize);
 }
 
 void Sample::allocateTextOverlayTexture() {
-	textOverlayBuffer = (uint8*)malloc(TEXT_OVERLAY_SIZE_IN_BYTES);
+    printf("AllocateTexture 1\n");
+	textOverlayBuffer = (uint8*)memalign(64, TEXT_OVERLAY_SIZE_IN_BYTES);
+    printf("AllocateTexture 2\n");    
 	memset(textOverlayBuffer, 0, TEXT_OVERLAY_SIZE_IN_BYTES);
-
+    printf("AllocateTexture 3\n");
 	// Allocate PVR VRAM for the text overlay texture
 	textOverlayTexture = pvr_mem_malloc(TEXT_OVERLAY_SIZE_IN_BYTES);
-
+    printf("AllocateTexture 4\n");
 	// Upload the text overlay texture to VRAM
 	pvr_txr_load(textOverlayBuffer, textOverlayTexture, TEXT_OVERLAY_SIZE_IN_BYTES);    
 }

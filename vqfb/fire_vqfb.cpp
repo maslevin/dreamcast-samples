@@ -92,7 +92,7 @@ void FireVqfb::render() {
                             0.0f, 0.0f, 1.0f, 640.0f, 480.0f, 0.0f, 1.0f, 1.0f, 0.02f);
 
 	pvr_list_finish();
-/*
+
 	pvr_list_begin(PVR_LIST_TR_POLY);
 
 	// Draw the text overlay texture into the Transparent Polygon list at z=2.0f
@@ -100,7 +100,6 @@ void FireVqfb::render() {
                             0.0f, 0.0f, 2.0f, 512.0f, 512.0f, 0.0f, 1.0f, 0.0f, 1.0f);
 
 	pvr_list_finish();
-*/
 
 	pvr_scene_finish();	    
 }
